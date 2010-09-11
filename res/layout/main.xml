@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout android:layout_width="fill_parent" android:layout_height="fill_parent" xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/top_layout">
+	<RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="#7f7f00" android:id="@+id/map_view_layout"></RelativeLayout>
+	<Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentLeft="true" android:layout_alignParentBottom="true" android:text="Add Widget" android:id="@+id/add_button"></Button>
+	<ZoomControls android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:id="@+id/zoom_control"></ZoomControls>
+<CheckBox android:layout_above="@+id/zoom_control" android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/follow_me" android:text="Follow Me" android:textColor="#000000"></CheckBox>
+</RelativeLayout>
