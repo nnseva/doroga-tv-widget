@@ -44,6 +44,8 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.RemoteViews;
 import android.widget.ZoomControls;
@@ -68,6 +70,7 @@ public class Config extends Activity {
 	private BasicMapComponent mapComponent;
     private ZoomControls zoomControls;
     private CheckBox followMe;
+    private RadioGroup sizeSelector;
     private Button addButton;
     private NutiteqLocationMarker location_marker;
     private BaseMap map;
@@ -76,7 +79,6 @@ public class Config extends Activity {
     private String currentJamsUrl;
     private ProgressDialog progressDialog;
     private Handler resultHandler;
-    private SQLiteDatabase widgets;
 
     // Correct cleanup
     private boolean onRetainCalled;
@@ -102,8 +104,6 @@ public class Config extends Activity {
     	}
     	if( api != null )
     		api.close();
-    	if( widgets != null )
-    		widgets.close();
     	super.onDestroy();
     }
 
@@ -113,7 +113,6 @@ public class Config extends Activity {
         super.onCreate(savedInstanceState);
         setResult(RESULT_CANCELED);
         api = new DorogaTVAPI(this);
-        widgets = (new DBOpener(this,"widgets.db",2)).getWritableDatabase();
         
         setContentView(R.layout.main);
 
@@ -240,6 +239,8 @@ public class Config extends Activity {
 					location_marker.setTrackingEnabled(isChecked);
 				}
 		});
+		// Add Radio Group
+		sizeSelector = (RadioGroup) findViewById(R.id.size_selector);
 
 		// Add OK Button
 		addButton = (Button) findViewById(R.id.add_button);
@@ -264,11 +265,10 @@ public class Config extends Activity {
 			{
 				// create a record in the table
 				prepareWidgets();
-				appendWidget(appWidgetId,mapComponent.getCenterPoint().getLon(),mapComponent.getCenterPoint().getLat(),mapComponent.getZoom(),followMe.isChecked());
-				// first empty widget sample
-				AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(getApplicationContext());
-				RemoteViews views = new RemoteViews(getApplicationContext().getPackageName(), R.layout.widget1x1);
-				appWidgetManager.updateAppWidget(appWidgetId, views);
+				int checkedId = sizeSelector.getCheckedRadioButtonId();
+				RadioButton rb = (RadioButton) sizeSelector.findViewById(checkedId);
+				int i = Integer.parseInt(rb.getTag().toString());
+				appendWidget(appWidgetId,mapComponent.getCenterPoint().getLon(),mapComponent.getCenterPoint().getLat(),mapComponent.getZoom(),i,followMe.isChecked());
 				// start sending update notifications to the widget manager
 				Intent updaterIntent = new Intent();
 				updaterIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
@@ -276,7 +276,7 @@ public class Config extends Activity {
 				updaterIntent.setData(Uri.withAppendedPath(Uri.parse("doroga://widget/id/"), String.valueOf(appWidgetId))); // To have an intent be unique; note about Mainfest!!!
 				PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, updaterIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 				AlarmManager alarmManager = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
-				alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime()+5, 60000, pendingIntent);
+				alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime(), 60000, pendingIntent);
 				// prepare the result to return
 				Intent resultValue = new Intent();
 				resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
@@ -286,17 +286,17 @@ public class Config extends Activity {
 		}
     }
 
-	private void appendWidget(int appWidgetId, double lon, double lat, int zoom, boolean followMe) {
-		synchronized(widgets) {
-			try
-			{
-				widgets.execSQL(String.format("INSERT INTO %s (widgetId,lon,lat,zoom,sizeSelector,followMe) VALUES (%d,%18.15f,%18.15f,%d,%d,%d) ",appWidgetId,lon,lat,zoom,0,followMe?1:0));
-			}
-			catch(Exception e)
-			{
-				android.util.Log.e("DorogaTVWidget", "Config",e);
-			}
+	private void appendWidget(int appWidgetId, double lon, double lat, int zoom, int size, boolean followMe) {
+        SQLiteDatabase widgets = (new DBOpener(this,"widgets.db",2)).getWritableDatabase();
+		try
+		{
+			widgets.execSQL(String.format("INSERT INTO %s (widgetId,lon,lat,zoom,sizeSelector,followMe) VALUES (%d,%18.15f,%18.15f,%d,%d,%d) ",WIDGETS_TABLE,appWidgetId,lon,lat,zoom,size,followMe?1:0));
 		}
+		catch(Exception e)
+		{
+			android.util.Log.e("DorogaTVWidget", "Config",e);
+		}
+		widgets.close();
 	}
 
 	@Override
@@ -307,34 +307,35 @@ public class Config extends Activity {
 	
 	private boolean checkIfTableExists(String table)
 	{
+		boolean r = true;
+        SQLiteDatabase widgets = (new DBOpener(this,"widgets.db",2)).getReadableDatabase();
 		try {
 			widgets.rawQuery(String.format("select 0 from %s limit 1",table), null);
 		} catch(Exception e) {
-			return false;
+			r = false;
 		}
-		return true;
+		widgets.close();
+		return r;
 	}
 
 	private void prepareWidgets()
 	{
-		synchronized(widgets) {
-			try
-			{
-
-				if( !checkIfTableExists(WIDGETS_TABLE) ) {
-					
-					android.util.Log.i("DorogaTVWidget", String.format("Config - widgets table not yet created"));
-					createWidgets();
-				}
+		try
+		{
+			if( !checkIfTableExists(WIDGETS_TABLE) ) {
+				
+				android.util.Log.i("DorogaTVWidget", String.format("Config - widgets table not yet created"));
+				createWidgets();
 			}
-			catch(Exception e)
-			{
-				android.util.Log.e("DorogaTVWidget", "Config",e);
-			}
+		}
+		catch(Exception e)
+		{
+			android.util.Log.e("DorogaTVWidget", "Config",e);
 		}
 	}
 
 	private void createWidgets() {
+        SQLiteDatabase widgets = (new DBOpener(this,"widgets.db",2)).getWritableDatabase();
 		widgets.execSQL(new StringBuilder("DROP TABLE IF EXISTS ").append(WIDGETS_TABLE).toString());
 		{
 			StringBuilder sb = new StringBuilder();
@@ -348,6 +349,6 @@ public class Config extends Activity {
 			sb.append(", PRIMARY KEY(widgetId) )");
 			widgets.execSQL(sb.toString());
 		}
+		widgets.close();
 	}
-
 }
