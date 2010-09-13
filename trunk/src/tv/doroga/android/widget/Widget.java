@@ -80,25 +80,32 @@ public class Widget extends AppWidgetProvider{
 	public void onUpdate(Context ctxt, AppWidgetManager mgr, int[] appWidgetIds)
 	{
 		final Context context = ctxt;
-		final AppWidgetManager appWidgetManager = mgr;
 		final int[] ids = appWidgetIds;
 
 		new Thread(new Runnable(){
 			@Override
 			public void run() {
+				SQLiteDatabase widgets = (new DBOpener(context,"widgets.db",2)).getReadableDatabase();
 				for (int i = 0; i < ids.length; i++)
 				{
-					appWidgetManager.updateAppWidget(ids[i], buildUpdate(context, ids[i]));
+					int widgetId = ids[i];
+					Cursor c = widgets.rawQuery(String.format("select * from %s where widgetId = %d",Config.WIDGETS_TABLE,widgetId), null);
+					if(c.moveToFirst()) {
+						double lon = c.getDouble(c.getColumnIndex("lon"));
+						double lat = c.getDouble(c.getColumnIndex("lat"));
+						int zoom = c.getInt(c.getColumnIndex("zoom"));
+						int sizeSelector = c.getInt(c.getColumnIndex("sizeSelector"));
+						boolean followMe = c.getInt(c.getColumnIndex("followMe")) > 0;
+						updateWidget(context,widgetId,lon,lat,zoom,sizeSelector,followMe);
+					}
+					c.close();
 				}
+				widgets.close();
 			}
 		}).start();
 		super.onUpdate(ctxt, mgr, appWidgetIds);
 	}
-	public RemoteViews buildUpdate(Context context, int id)
-	{
-		RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget1x1);
-		return views;
-	}
+
 	@Override
 	public void onDisabled(Context ctxt)
 	{
@@ -107,7 +114,7 @@ public class Widget extends AppWidgetProvider{
 	private boolean checkIfTableExists(Context context,String table)
 	{
 		try {
-			SQLiteDatabase widgets = (new DBOpener(context,"widgets.db",2)).getWritableDatabase();
+			SQLiteDatabase widgets = (new DBOpener(context,"widgets.db",2)).getReadableDatabase();
 			widgets.rawQuery(String.format("select 0 from %s limit 1",table), null);
 			widgets.close();
 		} catch(Exception e) {
@@ -116,15 +123,27 @@ public class Widget extends AppWidgetProvider{
 		return true;
 	}
 
+	private void updateWidget(Context context,int widgetId, double lon, double lat, int zoom, int sizeSelector, boolean followMe) {
+		int[] widgetIds = {
+				0,
+				R.layout.widget1x1,
+				R.layout.widget2x1,
+				R.layout.widget2x2,
+				R.layout.widget4x2
+		};
+		RemoteViews views = new RemoteViews(context.getPackageName(), widgetIds[sizeSelector]);
+		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+		appWidgetManager.updateAppWidget(widgetId, views);
+	}
+	
 	private void updateWidgets(Context context)
 	{
-		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
 		try
 		{
 			if( !checkIfTableExists(context,Config.WIDGETS_TABLE) ) {
 				android.util.Log.i("DorogaTVWidget", String.format("Widget - widgets table not yet created"));
 			} else {
-				SQLiteDatabase widgets = (new DBOpener(context,"widgets.db",2)).getWritableDatabase();
+				SQLiteDatabase widgets = (new DBOpener(context,"widgets.db",2)).getReadableDatabase();
 				Cursor c = widgets.rawQuery(String.format("select * from %s",Config.WIDGETS_TABLE), null);
 				for(c.moveToFirst(); !c.isAfterLast();c.moveToNext()) {
 					int widgetId = c.getInt(c.getColumnIndex("widgetId"));
@@ -133,9 +152,7 @@ public class Widget extends AppWidgetProvider{
 					int zoom = c.getInt(c.getColumnIndex("zoom"));
 					int sizeSelector = c.getInt(c.getColumnIndex("sizeSelector"));
 					boolean followMe = c.getInt(c.getColumnIndex("followMe")) > 0;
-					// TODO: use values to service up
-					RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget1x1);
-					appWidgetManager.updateAppWidget(widgetId, views);
+					updateWidget(context,widgetId,lon,lat,zoom,sizeSelector,followMe);
 					// Restart alarms to have unique updates
 					Intent updaterIntent = new Intent();
 					updaterIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
