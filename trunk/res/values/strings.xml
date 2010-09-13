@@ -7,4 +7,8 @@
 <string name="error_network">Network Error</string>
 <string name="try_later">Try later</string>
 <string name="ok">OK</string>
+<string name="app_name1x1">Doroga TV Widget (1x1)</string>
+<string name="app_name2x1">Doroga TV Widget (2x1)</string>
+<string name="app_name2x2">Doroga TV Widget (2x2)</string>
+<string name="app_name4x2">Doroga TV Widget (4x2)</string>
 </resources>
