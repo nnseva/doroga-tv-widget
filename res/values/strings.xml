@@ -3,4 +3,8 @@
     <string name="hello">Hello World, Config!</string>
     <string name="app_name">Doroga TV Widget</string>
 
+<string name="error_server">Server error</string>
+<string name="error_network">Network Error</string>
+<string name="try_later">Try later</string>
+<string name="ok">OK</string>
 </resources>
