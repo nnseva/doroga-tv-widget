@@ -3,4 +3,4 @@
 	android:initialLayout="@layout/widget1x1"
 	android:minHeight="72dp"
 	android:minWidth="72dp"
-	android:configure="tv.doroga.android.widget.Config"/>
+	android:configure="tv.doroga.android.widget.Config1x1"/>
