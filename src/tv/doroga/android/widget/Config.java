@@ -70,7 +70,6 @@ public class Config extends Activity {
 	private BasicMapComponent mapComponent;
     private ZoomControls zoomControls;
     private CheckBox followMe;
-    private RadioGroup sizeSelector;
     private Button addButton;
     private NutiteqLocationMarker location_marker;
     private BaseMap map;
@@ -79,9 +78,15 @@ public class Config extends Activity {
     private String currentJamsUrl;
     private ProgressDialog progressDialog;
     private Handler resultHandler;
+    private int sizeSelector;
 
     // Correct cleanup
     private boolean onRetainCalled;
+    
+    public Config(int widgetSizeSelector) { // to be overriden by ancestor
+    	super();
+    	sizeSelector = widgetSizeSelector;
+    }
 
     @Override
     public Object onRetainNonConfigurationInstance() {
@@ -239,8 +244,6 @@ public class Config extends Activity {
 					location_marker.setTrackingEnabled(isChecked);
 				}
 		});
-		// Add Radio Group
-		sizeSelector = (RadioGroup) findViewById(R.id.size_selector);
 
 		// Add OK Button
 		addButton = (Button) findViewById(R.id.add_button);
@@ -265,10 +268,7 @@ public class Config extends Activity {
 			{
 				// create a record in the table
 				prepareWidgets();
-				int checkedId = sizeSelector.getCheckedRadioButtonId();
-				RadioButton rb = (RadioButton) sizeSelector.findViewById(checkedId);
-				int i = Integer.parseInt(rb.getTag().toString());
-				appendWidget(appWidgetId,mapComponent.getCenterPoint().getLon(),mapComponent.getCenterPoint().getLat(),mapComponent.getZoom(),i,followMe.isChecked());
+				appendWidget(appWidgetId,mapComponent.getCenterPoint().getLon(),mapComponent.getCenterPoint().getLat(),mapComponent.getZoom(),sizeSelector,followMe.isChecked());
 				// start sending update notifications to the widget manager
 				Intent updaterIntent = new Intent();
 				updaterIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);

@@ -52,8 +52,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.widget.RemoteViews;
 
-public class Widget extends AppWidgetProvider{
-    @Override
+public class Widget extends AppWidgetProvider {
+	@Override
 	public void onEnabled(Context context)
 	{
 		super.onEnabled(context);
