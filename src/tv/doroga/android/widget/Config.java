@@ -269,6 +269,7 @@ public class Config extends Activity {
 				// create a record in the table
 				prepareWidgets();
 				appendWidget(appWidgetId,mapComponent.getCenterPoint().getLon(),mapComponent.getCenterPoint().getLat(),mapComponent.getZoom(),sizeSelector,followMe.isChecked());
+				/* we don't need clock-driven updates, the service will do the job
 				// start sending update notifications to the widget manager
 				Intent updaterIntent = new Intent();
 				updaterIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
@@ -277,6 +278,7 @@ public class Config extends Activity {
 				PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, updaterIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 				AlarmManager alarmManager = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
 				alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime(), 60000, pendingIntent);
+				*/
 				// prepare the result to return
 				Intent resultValue = new Intent();
 				resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
