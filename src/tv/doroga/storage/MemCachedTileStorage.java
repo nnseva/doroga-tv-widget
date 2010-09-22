@@ -1,17 +1,16 @@
 package tv.doroga.storage;
 
-import java.util.HashMap;
+import java.text.SimpleDateFormat;
 import java.util.TreeMap;
-import java.util.Vector;
-
-import android.content.Context;
 
 public class MemCachedTileStorage extends CachedTileStorage {
-	private class CacheEntry {
-		public byte [] content;
-		public long ts;
+	public class CacheEntry {
+		byte [] content;
+		long original_ts;
+		long cached_ts;
 		public long reverse;
 	}
+
 	private TreeMap<Long,CacheEntry> cache;
 	private TreeMap< Long,Long > reverse_cache;
 	private int cache_maxtiles;
@@ -21,25 +20,23 @@ public class MemCachedTileStorage extends CachedTileStorage {
 		return (tilezoom << 40) | (tiley << 20) | tilex;
 	}
 
-	private boolean HasCached(int tilex, int tiley, int tilezoom)
-	{
-		return cache.containsKey(CachedKey(tilex,tiley,tilezoom));
-	}
-
-	private CacheEntry GetCachedEntry(int tilex, int tiley, int tilezoom)
+	@Override
+	protected void GetCachedTile(int tilex, int tiley, int tilezoom, CachedTileReceiver receiver)
 	{
 		long key = CachedKey(tilex,tiley,tilezoom); 
 		if( cache.containsKey(key) ) {
 			CacheEntry entry = cache.get(key);
-			return entry;
+			receiver.TileGot(tilex, tiley, tilezoom, entry.content, entry.original_ts, entry.cached_ts);
+		} else {
+			receiver.TileUnavailable(tilex, tiley, tilezoom);
 		}
-		return null;
 	}
 
-	private synchronized void PutCachedTile(int tilex, int tiley, int tilezoom, byte [] content)
+	@Override
+	protected synchronized void PutCachedTile(int tilex, int tiley, int tilezoom, byte [] content, long original_ts)
 	{
-		android.text.format.Time tm = new android.text.format.Time();
-		tm.setToNow();
+		SimpleDateFormat df = new SimpleDateFormat();
+		long ts = df.getCalendar().getTime().getTime();
 		long key = CachedKey(tilex,tiley,tilezoom);
 		if( cache.containsKey(key)) {
 			CacheEntry entry = cache.get(key);
@@ -48,7 +45,7 @@ public class MemCachedTileStorage extends CachedTileStorage {
 			entry.reverse = reverse_cache.lastKey()+1;
 
 			entry.content = content;
-			entry.ts = tm.toMillis(false);
+			entry.cached_ts = ts;
 			
 			reverse_cache.put(entry.reverse, key);
 			reverse_cache.remove(to_remove);
@@ -57,8 +54,9 @@ public class MemCachedTileStorage extends CachedTileStorage {
 		CacheEntry entry = new CacheEntry();
 		
 		entry.content = content;
-		entry.ts = tm.toMillis(false);
+		entry.cached_ts = ts;
 		entry.reverse = reverse_cache.size() > 0 ? reverse_cache.lastKey()+1:1;
+		entry.original_ts = original_ts;
 
 		cache.put(key,entry);
 		reverse_cache.put(entry.reverse, key);
@@ -73,35 +71,5 @@ public class MemCachedTileStorage extends CachedTileStorage {
 		cache = new TreeMap<Long,CacheEntry>();
 		reverse_cache = new TreeMap<Long,Long>();
 		cache_maxtiles = maxtiles;
-	}
-
-	@Override
-	public synchronized byte[] GetTile(Context context, int tilex, int tiley, int tilezoom) {
-		CacheEntry entry =  GetCachedEntry(tilex, tiley, tilezoom);
-
-		android.text.format.Time tm = new android.text.format.Time();
-		tm.setToNow();
-
-		if( entry != null ) {
-			if( entry.ts > tm.toMillis(false) - Timeout() ) {
-				return entry.content;
-			} else {
-				if( !BaseStorage().GetTileHasChanged(context, tilex, tiley, tilezoom, entry.ts) ) {
-					
-				}
-			}
-		}
-		byte [] lower = BaseStorage().GetTile(context, tilex, tiley, tilezoom);
-		if( lower != null ) {
-			PutCachedTile(tilex, tiley, tilezoom, lower);
-		}
-		return lower;
-	}
-
-	@Override
-	public boolean GetTileHasChanged(Context context, int tilex, int tiley,
-			int tilezoom, int ts) {
-		// TODO Auto-generated method stub
-		return false;
 	}
 }
