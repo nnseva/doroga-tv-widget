@@ -2,12 +2,10 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
+	<classpathentry excluding="com/nutiteq/landmark/" kind="src" path="nutiteq_map_sdk/src"/>
+	<classpathentry kind="src" path="nutiteq_map_sdk/android/src"/>
+	<classpathentry excluding="org/json/util/" kind="src" path="nutiteq_map_sdk/thirdparty/src"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
-	<classpathentry exported="true" kind="lib" path="lib/android_maps_lib-1.1.0.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="file:/home/seva/workspace/maps-lib-android_1_1_0/javadoc/"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="lib" path="lib/ostermillerutils_1_07_00.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
