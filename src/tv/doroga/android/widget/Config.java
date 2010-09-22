@@ -169,7 +169,8 @@ public class Config extends Activity {
 						if( baseurl != null ) {
 							String oldJamsUrl = currentJamsUrl;
 							currentJamsUrl = baseurl + DorogaTVAPI.JAMS_TEMPLATE;
-							if( currentJamsUrl != oldJamsUrl ) {
+							//if( currentJamsUrl != oldJamsUrl ) {
+							if( map.getTileOverlay() == null ) {
 								map.addTileOverlay(new MapTileOverlay() {
 									@Override
 									public String getOverlayTileUrl(MapTile tile) {
@@ -183,7 +184,12 @@ public class Config extends Activity {
 										return null;
 									}
 						        });
+							} else {
+								map.addTileOverlay(null); // for testing
 							}
+							
+							mapComponent.refreshTileOverlay();
+							
 							/*
 							WgsBoundingBox bb = mapComponent.getBoundingBox();
 							MapPos lb = map.wgsToMapPos(bb.getWgsMin().toInternalWgs(), mapComponent.getZoom());
@@ -192,14 +198,16 @@ public class Config extends Activity {
 							for(int left = (lb.getX() >> 8) << 8; left < rt.getX(); left += 256 ) {
 								for(int top = (rt.getY() >> 8) << 8; top < lb.getY(); top += 256 ) {
 									MapTile t = new MapTile(left, top, lb.getZoom(), map, mapComponent);
-									mapComponent.updateTile(t);
+									//t.getMap();
+									//mapComponent.updateTile(t);
+									mapComponent.tileRetrieved(t);
 								}
-							}
-							*/
+							}*/
+							
 						}
 					}
         		}
-        		, 0, 1000*60/2);
+        		, 10, 1000*60/2);
 
         mapView = new MapView(this, mapComponent);
 

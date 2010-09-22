@@ -30,4 +30,11 @@
 		<nature>com.android.ide.eclipse.adt.AndroidNature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>nutiteq_map_sdk</name>
+			<type>2</type>
+			<location>/home/seva/nutiteq_map_sdk</location>
+		</link>
+	</linkedResources>
 </projectDescription>
