@@ -41,6 +41,7 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewStub;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -75,9 +76,8 @@ public class Config extends Activity {
     private BaseMap map;
     private Timer refreshTimer;
     private DorogaTVAPI api;
-    private String currentJamsUrl;
-    private ProgressDialog progressDialog;
-    private Handler resultHandler;
+    //private ProgressDialog progressDialog;
+    //private Handler resultHandler;
     private int sizeSelector;
 
     // Correct cleanup
@@ -93,26 +93,53 @@ public class Config extends Activity {
     	onRetainCalled = true;
     	return mapComponent;
     }
-    
+
     @Override
     protected void onDestroy() {
     	if( refreshTimer != null ) {
     		refreshTimer.cancel();
     	}
+    	if( api != null )
+    		api.close();
+    	if (!onRetainCalled) {
+    		/*
+	    	if( location_marker != null ) {
+	    		location_marker.cancel();
+	    	}*/
+	    	if( mapComponent != null ) {
+	    		mapComponent.stopMapping();
+	    		mapComponent = null;
+	    	}
+	    	if (mapView != null) {
+	    		mapView.clean();
+	    		mapView = null;
+	    	}
+	    }
+    	super.onDestroy();
+    }
+    /*
+    @Override
+    protected void onStop() {
+    	if( refreshTimer != null ) {
+    		refreshTimer.cancel();
+    	}
+    	if( location_marker != null ) {
+    		location_marker.cancel();
+    	}
     	if (mapView != null) {
     		mapView.clean();
     		mapView = null;
     	}
-    	if (!onRetainCalled) {
+    	if( mapComponent != null ) {
     		mapComponent.stopMapping();
     		mapComponent = null;
     	}
     	if( api != null )
     		api.close();
-    	super.onDestroy();
+    	super.onStop();
     }
-
-	/** Called when the activity is first created. */
+	*/
+    /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -120,7 +147,32 @@ public class Config extends Activity {
         api = new DorogaTVAPI(this);
         
         setContentView(R.layout.main);
+        //int x = R.id.
+		int w=1,h=1;
+		switch(sizeSelector) {
+		case 1: // 1x1
+			w = 72;
+			h = 72;
+			break;
+		case 2: // 2x1
+			w = 146;
+			h = 72;
+			break;
+		case 3: // 2x2
+			w = 146;
+			h = 146;
+			break;
+		case 4: // 4x2
+			w = 294;
+			h = 146;
+			break;
+		}
+        View img_frame = findViewById(R.id.img_frame);
+        img_frame.setMinimumHeight(h);
+        img_frame.setMinimumWidth(w);
+        img_frame.requestLayout();
 
+        /*
         final Config config = this;
 	    resultHandler = new Handler(){
 	    	@Override
@@ -151,7 +203,7 @@ public class Config extends Activity {
 	    		}
 	    	}
 	    };
-
+         */
         map = new OpenStreetMap("http://tile.openstreetmap.org/", 256, 1, 18);
         mapComponent = new BasicMapComponent("0266e33d3f546cb5436a10798e657d974c8b53482634a7.63929236","Doroga-TV","Doroga TV Widget", 1, 1,
         		new WgsPoint(44, 56.32), 10);
@@ -160,54 +212,7 @@ public class Config extends Activity {
 		mapComponent.setControlKeysHandler(new AndroidKeysHandler());
 
 		refreshTimer = new Timer();
-        refreshTimer.schedule(
-        		new TimerTask() {
-					@Override
-					public void run() {
-						WgsPoint p = mapComponent.getCenterPoint();
-						String baseurl = api.getDataProviderURL(p.getLon(),p.getLat());
-						if( baseurl != null ) {
-							String oldJamsUrl = currentJamsUrl;
-							currentJamsUrl = baseurl + DorogaTVAPI.JAMS_TEMPLATE;
-							//if( currentJamsUrl != oldJamsUrl ) {
-							if( map.getTileOverlay() == null ) {
-								map.addTileOverlay(new MapTileOverlay() {
-									@Override
-									public String getOverlayTileUrl(MapTile tile) {
-										int tilex = tile.getX() >> 8;
-										int tiley = tile.getY() >> 8;
-	
-										if( currentJamsUrl != null ) {
-											String s = String.format(currentJamsUrl,tilex,tiley,tile.getZoom());  
-											return s;
-										}
-										return null;
-									}
-						        });
-							} else {
-								map.addTileOverlay(null); // for testing
-							}
-							
-							mapComponent.refreshTileOverlay();
-							
-							/*
-							WgsBoundingBox bb = mapComponent.getBoundingBox();
-							MapPos lb = map.wgsToMapPos(bb.getWgsMin().toInternalWgs(), mapComponent.getZoom());
-							MapPos rt = map.wgsToMapPos(bb.getWgsMax().toInternalWgs(), mapComponent.getZoom());
-							
-							for(int left = (lb.getX() >> 8) << 8; left < rt.getX(); left += 256 ) {
-								for(int top = (rt.getY() >> 8) << 8; top < lb.getY(); top += 256 ) {
-									MapTile t = new MapTile(left, top, lb.getZoom(), map, mapComponent);
-									//t.getMap();
-									//mapComponent.updateTile(t);
-									mapComponent.tileRetrieved(t);
-								}
-							}*/
-							
-						}
-					}
-        		}
-        		, 10, 1000*60/2);
+        refreshTimer.schedule(new RefreshJamsTask(this,mapComponent), 10, 1000*60/2);
 
         mapView = new MapView(this, mapComponent);
 
@@ -224,7 +229,7 @@ public class Config extends Activity {
 		zoomControls.setOnZoomInClickListener(new View.OnClickListener() {
 			public void onClick(final View v) {
 				mapComponent.zoomIn();
-		}
+			}
 		});
 		zoomControls.setOnZoomOutClickListener(new View.OnClickListener() {
 			public void onClick(final View v) {
@@ -277,16 +282,6 @@ public class Config extends Activity {
 				// create a record in the table
 				prepareWidgets();
 				appendWidget(appWidgetId,mapComponent.getCenterPoint().getLon(),mapComponent.getCenterPoint().getLat(),mapComponent.getZoom(),sizeSelector,followMe.isChecked());
-				/* we don't need clock-driven updates, the service will do the job
-				// start sending update notifications to the widget manager
-				Intent updaterIntent = new Intent();
-				updaterIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-				updaterIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[] {appWidgetId});
-				updaterIntent.setData(Uri.withAppendedPath(Uri.parse("doroga://widget/id/"), String.valueOf(appWidgetId))); // To have an intent be unique; note about Mainfest!!!
-				PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, updaterIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-				AlarmManager alarmManager = (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
-				alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime(), 60000, pendingIntent);
-				*/
 				// prepare the result to return
 				Intent resultValue = new Intent();
 				resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
@@ -335,7 +330,7 @@ public class Config extends Activity {
 			if( !checkIfTableExists(WIDGETS_TABLE) ) {
 				
 				android.util.Log.i("DorogaTVWidget", String.format("Config - widgets table not yet created"));
-				createWidgets();
+				createWidgetsTable();
 			}
 		}
 		catch(Exception e)
@@ -344,7 +339,7 @@ public class Config extends Activity {
 		}
 	}
 
-	private void createWidgets() {
+	private void createWidgetsTable() {
         SQLiteDatabase widgets = (new DBOpener(this,"widgets.db",2)).getWritableDatabase();
 		widgets.execSQL(new StringBuilder("DROP TABLE IF EXISTS ").append(WIDGETS_TABLE).toString());
 		{

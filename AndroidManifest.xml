@@ -85,7 +85,7 @@
 		    	<meta-data android:name="android.appwidget.provider" android:resource="@xml/widget4x2" />
 		</receiver>
         <!-- Service to perform web queries and widget update -->
-        <service android:name=".Widget$UpdateService" />
+        <service android:name="JamsWidgetUpdateService"/>
 </application>
 
     <uses-sdk android:minSdkVersion="4" />
