@@ -3,23 +3,23 @@
       package="tv.doroga.android.widget"
       android:versionCode="1"
       android:versionName="1.0">
-    <application android:icon="@drawable/icon" android:label="@string/app_name">
-        <activity android:name=".Config1x1">
+    <application android:label="@string/app_name" android:icon="@drawable/icon">
+        <activity android:name=".Config1x1" android:icon="@drawable/icon">
             <intent-filter>
     			<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
     		</intent-filter>
         </activity>
-        <activity android:name=".Config2x1">
+        <activity android:name=".Config2x1" android:icon="@drawable/icon">
             <intent-filter>
     			<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
     		</intent-filter>
         </activity>
-        <activity android:name=".Config2x2">
+        <activity android:name=".Config2x2" android:icon="@drawable/icon">
             <intent-filter>
     			<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
     		</intent-filter>
         </activity>
-        <activity android:name=".Config4x2">
+        <activity android:name=".Config4x2" android:icon="@drawable/icon">
             <intent-filter>
     			<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
     		</intent-filter>
