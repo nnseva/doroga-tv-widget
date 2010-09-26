@@ -34,60 +34,61 @@ public class DorogaTVAPI {
 	public static String DATA_PROVIDERS_TABLE = "data_providers";
 	
 	private String data_provider_list;
-	private SQLiteDatabase data_providers; // copy of the server data providers table
+	private Context context;
 	
 	public DorogaTVAPI(Context context) {
 		data_provider_list = DATA_PROVIDER_LIST;
-		data_providers = (new DBOpener(context,"dataproviders.db",1)).getWritableDatabase();
+		this.context = context;
 		prepareDataProviders();
 	}
 
 	public DorogaTVAPI(Context context,String dataProviderListURL) {
 		data_provider_list = dataProviderListURL;
-		data_providers = (new DBOpener(context,"dataproviders.db",1)).getWritableDatabase(); 
+		this.context = context;
 		prepareDataProviders();
 	}
 	private boolean checkIfTableExists(String table)
 	{
+		SQLiteDatabase data_providers = (new DBOpener(context,"dataproviders.db",1)).getWritableDatabase();
 		try {
 			data_providers.rawQuery(String.format("select 0 from %s limit 1",table), null);
 		} catch(Exception e) {
 			return false;
 		}
+		data_providers.close();
 		return true;
 	}
 	private void prepareDataProviders()
 	{
-		synchronized(data_providers) {
-			try
-			{
-				if( !checkIfTableExists("last_update")) {
-					data_providers.execSQL("create table last_update (last_update INTEGER)");
-					data_providers.execSQL(new StringBuilder().append("insert into last_update (last_update) values (").append(System.currentTimeMillis()).append(")").toString());
-				}
+		SQLiteDatabase data_providers = (new DBOpener(context,"dataproviders.db",1)).getWritableDatabase();
+		try
+		{
+			if( !checkIfTableExists("last_update")) {
+				data_providers.execSQL("create table last_update (last_update INTEGER)");
+				data_providers.execSQL(new StringBuilder().append("insert into last_update (last_update) values (").append(System.currentTimeMillis()).append(")").toString());
+			}
 
-				Cursor c = data_providers.rawQuery("select last_update from last_update",null);
-				c.moveToFirst();
-				if( c.getLong(0) > System.currentTimeMillis() + 1000*60*60 ) {
-					android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - data provider table too old"));
-					requestDataProviders();
-				} else if( !checkIfTableExists(DATA_PROVIDERS_TABLE) ) {
-					android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - data provider table not yet created"));
-					requestDataProviders();
-				}
-				c.close();
+			Cursor c = data_providers.rawQuery("select last_update from last_update",null);
+			c.moveToFirst();
+			if( c.getLong(0) > System.currentTimeMillis() + 1000*60*60 ) {
+				android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - data provider table too old"));
+				requestDataProviders();
+			} else if( !checkIfTableExists(DATA_PROVIDERS_TABLE) ) {
+				android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - data provider table not yet created"));
+				requestDataProviders();
 			}
-			catch(Exception e)
-			{
-				android.util.Log.e("DorogaTVWidget", "DorogaTVAPI",e);
-			}
+			c.close();
 		}
+		catch(Exception e)
+		{
+			android.util.Log.e("DorogaTVWidget", "DorogaTVAPI",e);
+		}
+		data_providers.close();
 	}
 	
 	private void requestDataProviders()
 	{
 		Thread requestThread = new Thread(new Runnable() {
-
 			@Override
 			public void run() {
 				// TODO Auto-generated method stub
@@ -128,79 +129,77 @@ public class DorogaTVAPI {
 	}
 	
 	protected void storeDataProviders(String[] labels, String[][] values) {
-		// TODO Auto-generated method stub
-		synchronized(data_providers) {
-			try
+		try
+		{
+			SQLiteDatabase data_providers = (new DBOpener(context,"dataproviders.db",1)).getWritableDatabase();
+			data_providers.execSQL(new StringBuilder("DROP TABLE IF EXISTS ").append(DATA_PROVIDERS_TABLE).toString());
 			{
-				data_providers.execSQL(new StringBuilder("DROP TABLE IF EXISTS ").append(DATA_PROVIDERS_TABLE).toString());
-				{
-					StringBuilder sb = new StringBuilder();
-					sb.append("CREATE TABLE ").append(DATA_PROVIDERS_TABLE).append(" (");
-					for(int i=0; i < labels.length; i++) {
-						if(i > 0) sb.append(',');
-						sb.append(labels[i]);
-						sb.append(' ');
-						if( i > 0 )
-							sb.append("LONG VARCHAR");
-						else if( labels[i] == "minLon" || labels[i] == "minLat" || labels[i] == "maxLon" || labels[i] == "maxLat" )
-							sb.append("DOUBLE");
-						else
-							sb.append("INTEGER");
-					}
-					sb.append(", PRIMARY KEY(").append(labels[0]).append(") )");
-					data_providers.execSQL(sb.toString());
-					data_providers.execSQL(new StringBuilder().append("CREATE INDEX minlatlon ON ").append(DATA_PROVIDERS_TABLE).append("(minLon,minLat)").toString());
-					data_providers.execSQL(new StringBuilder().append("CREATE INDEX maxlatlon ON ").append(DATA_PROVIDERS_TABLE).append("(maxLon,maxLat)").toString());
+				StringBuilder sb = new StringBuilder();
+				sb.append("CREATE TABLE ").append(DATA_PROVIDERS_TABLE).append(" (");
+				for(int i=0; i < labels.length; i++) {
+					if(i > 0) sb.append(',');
+					sb.append(labels[i]);
+					sb.append(' ');
+					if( i > 0 )
+						sb.append("LONG VARCHAR");
+					else if( labels[i] == "minLon" || labels[i] == "minLat" || labels[i] == "maxLon" || labels[i] == "maxLat" )
+						sb.append("DOUBLE");
+					else
+						sb.append("INTEGER");
 				}
-				for(int j=0; j < values.length; j++) {
-					ContentValues cv = new ContentValues();
-					for(int i=0; i < labels.length; i++) {
-						cv.put(labels[i],values[j][i]);
-					}
-					data_providers.insert(DATA_PROVIDERS_TABLE, null, cv);
+				sb.append(", PRIMARY KEY(").append(labels[0]).append(") )");
+				data_providers.execSQL(sb.toString());
+				data_providers.execSQL(new StringBuilder().append("CREATE INDEX minlatlon ON ").append(DATA_PROVIDERS_TABLE).append("(minLon,minLat)").toString());
+				data_providers.execSQL(new StringBuilder().append("CREATE INDEX maxlatlon ON ").append(DATA_PROVIDERS_TABLE).append("(maxLon,maxLat)").toString());
+			}
+			for(int j=0; j < values.length; j++) {
+				ContentValues cv = new ContentValues();
+				for(int i=0; i < labels.length; i++) {
+					cv.put(labels[i],values[j][i]);
 				}
+				data_providers.insert(DATA_PROVIDERS_TABLE, null, cv);
 			}
-			catch(Exception e)
-			{
-				android.util.Log.e("DorogaTVWidget", "DorogaTVAPI",e);
-			}
+			data_providers.close();
+		}
+		catch(Exception e)
+		{
+			android.util.Log.e("DorogaTVWidget", "DorogaTVAPI",e);
 		}
 	}
 
 	public String getDataProviderURL(double lon, double lat) {
-		synchronized(data_providers) {
-			try
-			{
-				String[] fields = {
-						"InetAddress"
-				};
-				String[] args = {
-						String.format("%18.15f", lon),
-						String.format("%18.15f", lat)
-				};
-				if( !checkIfTableExists(DATA_PROVIDERS_TABLE) ) {
-					android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - data provider table not found for location %f/%f",lon,lat));					
-					return null;
-				}
-				Cursor c = data_providers.query(DATA_PROVIDERS_TABLE, fields,
-						"? BETWEEN minLon and maxLon AND ? BETWEEN minLat and maxLat", args,null,null,"RegionId");
-				if( c.moveToFirst() ) {
-					android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - provider found for location %f/%f - %s",lon,lat,c.getString(0)));
-					String r = c.getString(0);
-					c.close();
-					return r;
-				}
-				android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - provider not found for location %f/%f",lon,lat));					
+		try
+		{
+			String[] fields = {
+					"InetAddress"
+			};
+			String[] args = {
+					String.format("%18.15f", lon),
+					String.format("%18.15f", lat)
+			};
+			if( !checkIfTableExists(DATA_PROVIDERS_TABLE) ) {
+				android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - data provider table not found for location %f/%f",lon,lat));					
+				return null;
 			}
-			catch(Exception e)
-			{
-				android.util.Log.e("DorogaTVWidget", "DorogaTVAPI",e);
+			SQLiteDatabase data_providers = (new DBOpener(context,"dataproviders.db",1)).getWritableDatabase();
+			Cursor c = data_providers.query(DATA_PROVIDERS_TABLE, fields,
+					"? BETWEEN minLon and maxLon AND ? BETWEEN minLat and maxLat", args,null,null,"RegionId");
+			if( c.moveToFirst() ) {
+				android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - provider found for location %f/%f - %s",lon,lat,c.getString(0)));
+				String r = c.getString(0);
+				c.close();
+				data_providers.close();
+				return r;
 			}
+			android.util.Log.i("DorogaTVWidget", String.format("DorogaTVAPI - provider not found for location %f/%f",lon,lat));
+			data_providers.close();
+		}
+		catch(Exception e)
+		{
+			android.util.Log.e("DorogaTVWidget", "DorogaTVAPI",e);
 		}
 		return null;
 	}
 	public void close() {
-		if( data_providers != null )
-			data_providers.close();
 	}
 }

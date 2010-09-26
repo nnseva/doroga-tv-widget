@@ -4,6 +4,15 @@
 	<RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="#7f7f00" android:id="@+id/map_view_layout"></RelativeLayout>
 	
 	<Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentLeft="true" android:layout_alignParentBottom="true" android:text="Add Widget" android:id="@+id/add_button"></Button>
-	<ZoomControls android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:id="@+id/zoom_control"></ZoomControls>
+	<ImageView android:id="@+id/img_frame" android:background="@drawable/frm" android:layout_centerInParent="true" android:layout_height="wrap_content" android:layout_width="wrap_content" android:minHeight="29dp" android:minWidth="29dp"></ImageView><ZoomControls android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:id="@+id/zoom_control"></ZoomControls>
 	<CheckBox android:layout_above="@+id/zoom_control" android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/follow_me" android:text="Follow Me" android:textColor="#000000" android:layout_alignParentRight="true"></CheckBox>
+
+
+
+
+
+
+
+
+
 </RelativeLayout>
